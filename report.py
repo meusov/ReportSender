@@ -33,15 +33,12 @@ def submit_report(driver, domain, processed_domains):
                 processed_domains.add(domain)
         return False
 
-    # Открываем страницу для отправки отчета
     driver.get('https://safebrowsing.google.com/safebrowsing/report_error/?hl=en')
 
-    # Вводим домен в поле "URL"
     url_field = driver.find_element(By.ID, 'url')
     url_field.clear()
     url_field.send_keys(domain)
 
-    # Вводим текст в поле "Additional details: (Optional)"
     additional_details_field = driver.find_element(By.ID, 'dq')
     
     additional_details_texts = [
@@ -60,8 +57,7 @@ def submit_report(driver, domain, processed_domains):
     additional_details_text = random.choice(additional_details_texts)
     additional_details_field.clear()
     additional_details_field.send_keys(additional_details_text)
-
-    # Ждем, пока пользователь перенаправит нас на страницу успешной отправки отчета
+    
     try:
         WebDriverWait(driver, 100).until(EC.url_contains('submit_success'))
         logging.info(f'Отчет для: {domain} успешно отправлен!')
@@ -74,40 +70,35 @@ def submit_report(driver, domain, processed_domains):
 with open('domains.txt', 'r') as f:
     domains = f.read().splitlines()
 
-# Множество для отслеживания обработанных доменов
 processed_domains = set()
 
-# Опции для ChromeDriver
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--disable-blink-features=AutomationControlled')
 
-# Автоматическая установка последней версии ChromeDriver
 service = webdriver.chrome.service.Service(ChromeDriverManager().install())
 
-# Открываем браузер
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
-# Максимальное количество попыток отправки отчета
 max_attempts = 3
 
-index = 0  # Индекс текущего домена
+index = 0  
 
 try:
-    # Открываем файл successful.txt для записи
+
     with open('successful.txt', 'a') as successful_domains_file:
         while index < len(domains):
             domain = domains[index]
-            attempts = 0  # Счетчик попыток отправки отчета
+            attempts = 0 
 
             while attempts < max_attempts:
                 success = submit_report(driver, domain, processed_domains)
 
                 if success:
-                    # Записываем успешный отчет в файл successful.txt
+            
                     current_time = time.strftime('%Y-%m-%d %H:%M:%S')
                     successful_domains_file.write(f'Домен: {domain} - репорт успешно отправлен! Дата: {current_time}\n')
                     successful_domains_file.flush()
-                    break  # Успешно отправлено, переходим к следующему домену
+                    break  
                 else:
                     attempts += 1
                     logging.warning(f'Повторяем попытку отправки для {domain} (попытка {attempts})...')
@@ -117,23 +108,21 @@ try:
 
             time.sleep(2)
 
-            index += 1  # Переходим к следующему домену
+            index += 1 
 
 except TimeoutException as e:
     logging.error(f'Произошла ошибка TimeoutException: {str(e)}')
 except Exception as e:
     logging.error(f'Произошла ошибка: {str(e)}')
 
-# Закрываем браузер после работы скрипта
 driver.quit()
 
-# Открываем файл successful.txt после выполнения скрипта
 try:
     if platform.system() == 'Windows':
-        os.startfile('successful.txt')  # Винда
+        os.startfile('successful.txt')  # Windows
     elif platform.system() == 'Darwin':
-        subprocess.call(['open', 'successful.txt'])  # Яблоко
+        subprocess.call(['open', 'successful.txt'])  # Apple
     else:
-        subprocess.call(['xdg-open', 'successful.txt'])  # Линуха
+        subprocess.call(['xdg-open', 'successful.txt'])  # Linux
 except Exception:
     logging.warning('Невозможно автоматически открыть файл successful.txt на данной операционной системе.')
